@@ -13,5 +13,19 @@
 				"securityType": "AMAZON_COGNITO_USER_POOLS"
 			}
 		}
+	},
+	"storage": {
+		"photoalbumsstorage": {
+			"service": "S3",
+			"providerPlugin": "awscloudformation"
+		}
+	},
+	"function": {
+		"workshopphotoprocessor": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true,
+			"dependsOn": []
+		}
 	}
 }
