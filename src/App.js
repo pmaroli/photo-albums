@@ -1,4 +1,4 @@
-// src/App.js
+// photo-albums/src/App.js
 
 import React, { Component } from 'react';
 
@@ -48,21 +48,100 @@ const SubscribeToNewAlbums = `
 
 const GetAlbum = `query GetAlbum($id: ID!, $nextTokenForPhotos: String) {
     getAlbum(id: $id) {
-    id
-    name
-    photos(sortDirection: DESC, nextToken: $nextTokenForPhotos) {
-      nextToken
-      items {
-        thumbnail {
+        id
+        name
+        photos(sortDirection: DESC, nextToken: $nextTokenForPhotos) {
+            nextToken
+            items {
+                thumbnail {
+                    width
+                    height
+                    key
+                }
+            }
+        }
+    }
+}
+`;
+
+const SearchPhotos = `query SearchPhotos($label: String!) {
+  searchPhotos(filter: { labels: { match: $label }}) {
+    items {
+      id
+      bucket
+      thumbnail {
+          key
           width
           height
+      }
+      fullsize {
           key
-        }
+          width
+          height
       }
     }
   }
+}`;
+
+
+class Search extends React.Component {
+  constructor(props) {
+      super(props);
+      this.state = {
+          photos: [],
+          album: null,
+          label: '',
+          hasResults: false,
+          searched: false
+      }
+  }
+
+  updateLabel = (e) => {
+      this.setState({ label: e.target.value, searched: false });
+  }
+
+  getPhotosForLabel = async (e) => {
+      const result = await API.graphql(graphqlOperation(SearchPhotos, {label: this.state.label}));
+      let photos = [];
+      let label = '';
+      let hasResults = false;
+      if (result.data.searchPhotos) {
+          hasResults = true;
+          photos = result.data.searchPhotos.items;
+          label = this.state.label;
+      }
+      const searchResults = { label, photos }
+      this.setState({ searchResults, hasResults, searched: true });
+  }
+
+  noResults() {
+    return !this.state.searched
+      ? ''
+      : <Header as='h4' color='grey'>No photos found matching '{this.state.label}'</Header>
+  }
+
+  render() {
+      return (
+          <Segment>
+            <Input
+              type='text'
+              placeholder='Search for photos'
+              icon='search'
+              iconPosition='left'
+              action={{ content: 'Search', onClick: this.getPhotosForLabel }}
+              name='label'
+              value={this.state.label}
+              onChange={this.updateLabel}
+            />
+            {
+                this.state.hasResults 
+                ? <PhotosList photos={this.state.searchResults.photos} />
+                : this.noResults()
+            }
+          </Segment>
+      );
+  }
 }
-`;
 
 
 class S3ImageUpload extends React.Component {
@@ -211,7 +290,7 @@ class AlbumsList extends React.Component {
     );
   }
 }
-    
+
 
 class AlbumDetailsLoader extends React.Component {
     constructor(props) {
@@ -287,6 +366,7 @@ class AlbumDetails extends Component {
 }
 
 
+
 class AlbumsListLoader extends React.Component {
     onNewAlbum = (prevQuery, newData) => {
         // When we get data about a new album, we need to put in into an object 
@@ -303,8 +383,9 @@ class AlbumsListLoader extends React.Component {
                 subscription={graphqlOperation(SubscribeToNewAlbums)} 
                 onSubscriptionMsg={this.onNewAlbum}
             >
-                {({ data, loading }) => {
+                {({ data, loading, errors }) => {
                     if (loading) { return <div>Loading...</div>; }
+                    if (errors.length > 0) { return <div>{JSON.stringify(errors)}</div>; }
                     if (!data.listAlbums) return;
 
                 return <AlbumsList albums={data.listAlbums.items} />;
@@ -315,6 +396,7 @@ class AlbumsListLoader extends React.Component {
 }
 
 
+
 class App extends Component {
   render() {
     return (
@@ -323,6 +405,7 @@ class App extends Component {
           <Grid.Column>
             <Route path="/" exact component={NewAlbum}/>
             <Route path="/" exact component={AlbumsListLoader}/>
+            <Route path="/" exact component={Search}/>
 
             <Route
               path="/albums/:albumId"

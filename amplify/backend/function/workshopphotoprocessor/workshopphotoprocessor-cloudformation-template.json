@@ -40,7 +40,7 @@
 				},
 				"Code": {
 					"S3Bucket": "photo-albums-20190324032220-deployment",
-					"S3Key": "amplify-builds/workshopphotoprocessor-1554655552-latest-build.zip"
+					"S3Key": "amplify-builds/workshopphotoprocessor-1554657498-latest-build.zip"
 				}
 			}
 		},
